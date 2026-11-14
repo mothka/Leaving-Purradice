@@ -48,26 +48,23 @@ Then sends everything to finish.
 
     {{/* short message or low roll */}}
     {{if and (le $roll 30) (lt (len $m) $chars)}}
-        {{$add = 1}}
+        
         {{if $icats}}
             {{$icats = sub $icats $int_affected}}
             {{$icats = max $icats 0 | toInt}}
 
             {{$msg = print $msg $e.disinterests " " $int_affected " cats. They " $e.leave (index ($o := cslice "." ", disappearing from sight.") (randInt (len $o)))}}
-        {{else}}
-            {{if ne $crit 1}}
+            {{$add = 1}}
+
+            {{if lt $roll 10}}
                 {{$msg = print $msg "\nOne of them " $atks " you on their way out."}}
                 {{$crit = 1}}
             {{end}}
         {{end}}
 
-        {{if and (eq $crit 1) $e.udb.dmg}}
+        {{if and (eq $crit 1) ($d := $e.udb.dmg)}}
             {{/* don't kill chatters */}}
-            {{$swing = add $dmg (randInt 1 6)}}
-        {{end}}
-
-        {{if ne $crit $roll}}
-            {{$crit = 0}}
+            {{$swing = max 50 (add $d (randInt 1 6)) | toInt}}
         {{end}}
     {{end}}
 
@@ -92,7 +89,7 @@ Then sends everything to finish.
   {{if or (le $roll 50) ($crit)}}
       {{$crit = 1}}
       {{$msg = print $msg " You walk away from the cats and look at the ocean, thinking about your decisions and purpose here."}}
-      {{$swing = add $dmg 20 $swing}}
+      {{$swing = max 50 (add $dmg 20 $swing) | toInt}}
   {{end}}
 
   {{$news = $news.Append $msg}}
