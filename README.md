@@ -139,7 +139,7 @@ Originally setting a trap and getting cats were supposed to be separate actions,
 If you set a trap of any kind, we resolve the entire process, which is found in `trap_feed.yag`:
 
 - traps without a food word get a 20 point debuff to the roll
-- >=50 roll will catch already-interested cats
+- \>=50 roll will catch already-interested cats
 - If all cats on the island are interested and you didn't roll a 1, you still catch at least 1 cat
 - If you rolled >=40 and there are cats that aren't interested yet, the traps attract even more cats toward you.
   - The amount doubles and is treated as a 100 roll if you rolled >=90.
