@@ -115,6 +115,7 @@ every 4 days is 5 new cats
     "buff" 0
     "dmg" 0
     "msgs" 1
+    "lastroll" 2
    }}
 
     {{$buff = 0}}
@@ -126,6 +127,11 @@ every 4 days is 5 new cats
 {{$roll := randInt 1 101}}
 {{$roll = add $buff $roll}}
 {{$roll = sub $roll $dmg}}
+{{if and (le $roll 1) (eq $udb.lastroll 1)}}
+    {{/* prevent death spiral */}}
+    {{$roll = 2}}
+{{end}}
+{{$udb.Set "lastroll" $roll}}
 
 {{/* how many uninterested cats will be affected by actions */}}
 {{$affected := 1}}
@@ -138,7 +144,7 @@ every 4 days is 5 new cats
     {{$affected = 1}}
 {{end}}
 
-{{$swing := mult 4 $affected}}
+{{$swing := max 50 (mult 3 $affected) | toInt}}
 
 {{/* how many interested cats are affected */}}
 {{$int_affected := 1}}
@@ -152,13 +158,12 @@ every 4 days is 5 new cats
 {{$crit := 0}}
 {{if le $roll 1}}
     {{$roll = 1}}
-    {{$dmg = add $dmg $swing}}
-    {{$udb.Set "dmg" $dmg}}
+    {{$dmg = max 50 (add $dmg $swing) | toInt}}
     {{$crit = 1}}
 
 {{else if ge $roll 100}}
     {{$roll = 100}}
-    {{$buff = add $buff $swing}}
+    {{$buff = max 50 (add $buff $swing) | toInt}}
     {{$udb.Set "buff" $buff}}
     {{$crit = 2}}
 {{end}}
