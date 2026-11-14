@@ -26,14 +26,18 @@ I did some of this myself, but basically any large block that relies on `in` was
 I self-host YAGPDB and have premium. But I wanted the game to be accessible to free-tier users. I did try to optimize it myself, but the hours I was putting in were not making sense for such a simple game. Eventually I gave the LLM all my files and told it to (essentially) fix it for me. And that is the version of the code that is in the repository.
 
 The command was already split into 9 files by that point. The LLM added `react.yag` and made several changes to `actions.yag` and `main game.yag`.
+
+Any changes after the initial repo commit are human-written.
 </details>
 
 ## Start the game
 
-[Install the custom commands](https://github.com/mothka/Leaving-Purradice#how-to-install-the-custom-commands), then have someone with manage messages permissions type `-startgame` in the channel.
+[Install the custom commands](https://github.com/mothka/Leaving-Purradice#how-to-install-the-custom-commands), then have someone type `-startgame` in the channel.
 
 A default game starts with 5 cats. If you want a different number, simply add that to the command.    
 e.g. `-startgame 20` will start the game with 20 cats.
+
+If a game is already running, only someone with manage message permissions can restart it.
 
 ## About the game mechanics
 
@@ -185,5 +189,4 @@ I am unlikely to fix issues for this game.
 
 - To get around `execCC` stack depth limit, I save information to a database and retrieve it from the other commands. This causes 1-6 seconds of lag. In the rare case the data isn't found within 6 seconds, the trigger message simply isn't recognized.
 - There's no way to end the game early without catching the cats or starting a new game. This is ultimately harmless; only one database doesn't expire.
-- Starting a game must be done by someone with manage message permissions. If you want to change this, edit lines 22-25 of `main game.yag`.
 - All die roll success/fails were pretty much pulled out of my butt. The game has been played a few times, but it is not fully play-tested. Some odds may feel very out of balance.
