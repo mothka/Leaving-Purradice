@@ -20,11 +20,11 @@ limit in dashboard to only one channel
 {{$udb := dbGet .User.ID "purradice"}}
 
 {{if hasPrefix .Message.Content "-startgame"}}
-    {{if hasPermissions .Permissions.ManageMessages}}
+    {{if or (not $db) (hasPermissions .Permissions.ManageMessages)}}
         {{execCC $startgame nil 0 .Message.Content}}
     {{end}}
-
     {{return}}
+    
 {{else if $db}}
     {{$db = $db.Value}}
 {{else}}

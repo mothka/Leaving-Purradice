@@ -152,6 +152,7 @@ trigger: none
 {{if $win}}
     {{dbDel $cid "purradice"}}
     {{return}}
+    {{sendMessage nil "-# You can start a new game with `-startgame #` where `#` is the amount of cats on the island. e.g. `-startgame 20`"}}
 {{end}}
 
 {{dbSet $cid "purradice" $db}}
