@@ -30,7 +30,7 @@ The command was already split into 9 files by that point. The LLM added `react.y
 
 ## Start the game
 
-Install the custom commands, then have someone with manage messages permissions type `-startgame` in the channel.
+[Install the custom commands](https://github.com/mothka/Leaving-Purradice#how-to-install-the-custom-commands), then have someone with manage messages permissions type `-startgame` in the channel.
 
 A default game starts with 5 cats. If you want a different number, simply add that to the command.    
 e.g. `-startgame 20` will start the game with 20 cats.
@@ -150,7 +150,7 @@ Just in case you got here randomly, [YAGPDB](https://github.com/botlabs-gg/yagpd
 
 Since YAGPDB custom commands do not use a real coding language, this game won't work without the bot and probably cannot be easily translated.
 
-# How to install the custom commands.
+# How to install the custom commands
 
 1. Make a new custom command group named "Leaving Purradice."
 2. Make sure this custom command group only runs in one channel.
