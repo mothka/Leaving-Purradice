@@ -1,4 +1,4 @@
-# Leaving-Purradice
+# Leaving Purradice 🐱🏝️
 Very simple text game custom command for YAGPDB. Usable on free tier.
 
 You are on an island with a bunch of cats. It is the chat's job to get the cats off the island.
