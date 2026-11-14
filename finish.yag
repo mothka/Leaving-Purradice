@@ -70,9 +70,8 @@ trigger: none
 {{if eq $crit 1}}
     {{$msg := ""}}
     {{if eq $roll 1}}
-        {{$udb.Set "dmg" (max 50 (add (toInt $udb.dmg) $dmg) | toInt)}}
         {{$msg = print "Your damage increased by " $dmg "."}}
-    {{else}}
+    {{else if (gt $swing 0)}}
         {{$udb.Set "dmg" $swing}}
         {{$msg = print "You took " $swing " damage."}}
     {{end}}
@@ -81,9 +80,7 @@ trigger: none
     {{$charm := index ($o := cslice "charm" "luck" "agility" "patience" "speed" "experience" "reflexes" "focus" "courage" "determination" "cat senses" "motivation") (randInt (len $o))}}
     
     {{$news = $news.Append (print "Your " $charm " has increased by " $swing ".")}}
-    {{if eq $roll 100}}
-        {{$udb.Set "buff" (max 50 (add (toInt $udb.buff) $buff) | toInt)}}
-    {{else}}
+    {{if ne $roll 100}}
         {{$udb.Set "buff" $swing}}
     {{end}}
 {{end}}
