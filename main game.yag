@@ -24,7 +24,7 @@ limit in dashboard to only one channel
         {{execCC $startgame nil 0 .Message.Content}}
     {{end}}
     {{return}}
-    
+
 {{else if $db}}
     {{$db = $db.Value}}
 {{else}}
@@ -144,8 +144,6 @@ every 4 days is 5 new cats
     {{$affected = 1}}
 {{end}}
 
-{{$swing := max 50 (mult 3 $affected) | toInt}}
-
 {{/* how many interested cats are affected */}}
 {{$int_affected := 1}}
 {{if gt $icats 2}}
@@ -154,16 +152,19 @@ every 4 days is 5 new cats
     {{$int_affected = 0}}
 {{end}}
 
+
+{{$swing := min 50 (mult 3 (max $int_affected $affected)) | toInt}}
+
 {{/* criticals */}}
 {{$crit := 0}}
 {{if le $roll 1}}
     {{$roll = 1}}
-    {{$dmg = max 50 (add $dmg $swing) | toInt}}
+    {{$dmg = min 50 (add $dmg $swing) | toInt}}
     {{$crit = 1}}
 
 {{else if ge $roll 100}}
     {{$roll = 100}}
-    {{$buff = max 50 (add $buff $swing) | toInt}}
+    {{$buff = min 50 (add $buff $swing) | toInt}}
     {{$udb.Set "buff" $buff}}
     {{$crit = 2}}
 {{end}}

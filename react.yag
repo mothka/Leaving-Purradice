@@ -64,7 +64,7 @@ Then sends everything to finish.
 
         {{if and (eq $crit 1) ($d := $e.udb.dmg)}}
             {{/* don't kill chatters */}}
-            {{$swing = max 50 (add $d (randInt 1 6)) | toInt}}
+            {{$swing = min 50 (add $d (randInt 1 6)) | toInt}}
         {{end}}
     {{end}}
 
@@ -89,7 +89,7 @@ Then sends everything to finish.
   {{if or (le $roll 50) ($crit)}}
       {{$crit = 1}}
       {{$msg = print $msg " You walk away from the cats and look at the ocean, thinking about your decisions and purpose here."}}
-      {{$swing = max 50 (add $dmg 20 $swing) | toInt}}
+      {{$swing = min 50 (add $dmg 20 $swing) | toInt}}
   {{end}}
 
   {{$news = $news.Append $msg}}
