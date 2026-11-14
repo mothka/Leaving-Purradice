@@ -1,0 +1,101 @@
+{{/* Leaving Purradice - trapping & feeding actions
+trigger: none
+
+Resolves everything related to traps & food
+*/}}
+
+{{$e := .ExecData}}
+{{if not $e}}
+{{return}}
+{{end}}
+
+
+{{$save := $e}}
+{{$news := $e.news}}
+{{$icats := toInt $e.icats}}
+{{$roll := toInt $e.roll}}
+{{$crit := toInt $e.crit}}
+{{$a := $e.a}}
+{{$food := $e.food}}
+{{$affected := toInt $e.affected}}
+{{$available := toInt $e.available}}
+{{$int := 0}}
+{{$caught := 0}}
+{{$int_affected := toInt $e.int_affected}}
+
+{{if not $food}}
+    {{$food = "food"}}
+        
+    {{/* trap cats less often without food */}}
+    {{$roll = sub $roll (randInt 1 21)}}
+
+    {{try}}
+        {{$int_affected = randInt 1 $int_affected}}
+    {{catch}}
+        {{$int_affected = 1}}
+    {{end}}
+{{end}}
+
+{{$msg := ""}}
+{{if ne $a "trap"}}
+    {{$msg = print "You set down some " $food " for the cats" }}
+{{else}}
+    {{$msg = print "You've set a trap and baited it with some " $food }}
+{{end}}
+{{$msg = print $msg ".\nHopefully this works..."}}
+
+{{if $icats}}
+    {{$msg = print $msg "\n" $icats " are close. :eyes:"}}
+{{end}}
+{{$news = $news.Append $msg}}
+
+{{/* catch cats that were already interested */}}
+{{if $icats}}
+    {{if or (ge $roll 50) (and (not $available) (ne $crit 1))}}
+        {{$caught = min $int_affected $icats | toInt}}
+        {{$caught = max $caught 1 | toInt}}
+    {{end}}
+{{end}}
+
+{{/* attract some of the uninterested (available) cats */}}
+{{$gain := 0}}
+{{if and $available (ge $roll 40)}}
+    {{$gain = $affected}}
+    {{if ge $roll 90}}
+        {{$gain = min (mult 2 $affected) $available | toInt}}
+        {{$crit = 2}}
+    {{end}}
+    {{$icats = add $icats $gain}}
+{{end}}
+
+
+{{if $gain}}
+    {{$news = $news.Append (print "It looks like the " $food " " $e.attracts " about " $gain " new cats. " $e.theyre_interested ", joining the other cats that are already hanging around." )}}
+{{end}}
+
+{{if and (not $gain) (not $caught)}}
+    {{$news = $news.Append (print "\n...\n" (index ($o := cslice "None of the cats seem interested" "The cats avoid it" "You think the trap smells funny" "The cats probably don't like the bait" "Sigh. Maybe next time.." "The cats know you're up to something" "... It doesn't..") (randInt (len $o))) ". :pensive:")}}
+{{end}}
+
+{{if eq $crit 1}}
+    {{$news = $news.Append (print "One of the cats hates it so much, it " $e.atks " you before it runs off.")}}
+    {{$icats = sub $icats 1}}
+    {{$icats = max $icats 1 | toInt}} 
+{{end}}
+
+{{$caught = min $caught $icats | toInt}}
+
+{{/* send to finish */}}
+{{$package := sdict 
+"int" $int 
+"icats" $icats 
+"affected" $affected 
+"crit" $crit 
+"news" $news
+"caught" $caught
+}}
+{{range $k, $val := $package}}
+    {{$save.Set $k $val}}
+{{end}}
+
+{{execCC (toInt $e.finishcc) nil 0 $save}}

@@ -1,0 +1,175 @@
+{{/* Leaving Purradice - finish
+it runs the template to post the responses and save the DBs
+
+trigger: none
+*/}}
+
+{{$e := .ExecData}}
+{{if not $e}}
+    {{return}}
+{{end}}
+
+{{$news := $e.news}}
+{{$db := $e.db}}
+{{$udb := $e.udb}}
+{{$roll := toInt $e.roll}}
+{{$crit := toInt $e.crit}}
+{{$swing := toInt $e.swing}}
+{{$status := $e.status}}
+{{$mid := toInt $e.mid}}
+{{$cid := toInt $e.cid}}
+{{$uid := toInt $e.uid}}
+{{$a := $e.a}}
+{{$cats := toInt $e.cats}}
+{{$icats := toInt $e.icats}}
+{{$available := toInt $e.available}}
+{{$affected := toInt $e.affected}}
+{{$int := toInt $e.int}}
+{{$caught := toInt $e.caught}}
+{{$dmg := toInt $e.dmg}}
+{{$buff := toInt $e.buff}}
+
+
+{{/* statuses */}}
+{{$goodstatus := print "You're feeling " (index ($o := cslice "better" "more dapper" "in better spirits" "more motivated" "luckier" "happier" "more cheery" "more energetic" "more strategic" "more cunning") (randInt (len $o))) " than usual."}}
+
+{{$badstatus := print "You're " (index ($o := cslice "hurting" "in pain" "depressed" "more depressed" "forlorn" "not as motivated" "feeling a little unlucky" "feeling a bit clumsy" "not feeling well" "feeling reluctant to do much" "having second thoughts about your purpose" "feeling like you might've chosen the wrong career path" "having misgivings about this job" "second-guessing your purpose here" "not sure the cats like you" "not sure you want to be around cats") (randInt (len $o))) " right now."}}
+
+
+{{/* resolve the action math */}}
+{{if $a}}
+    {{if and $int $available}}
+        {{$icats = add $icats $affected}}
+        {{$available = sub $available $affected}}
+        {{$news = $news.Append (print $icats " total cats are now interested.")}}
+    {{end}}
+
+    {{if $caught}}
+        {{$cats = sub $cats $caught}}
+        {{$icats = sub $icats $caught}}
+        {{$caught2 := toInt $db.caught}}
+        {{$total := add $caught $caught2}}
+        {{$db.Set "caught" $total}}
+
+        {{$msg := print "\n**You did it! You caught " $caught " cats!**" }}
+        {{if gt $caught2 0}}
+            {{$msg = print $msg "\nYou put the crate on the ship with the others.\nYou've caught " $total " out of " (add $total $cats) " cats so far."}}
+        {{else}}
+            {{$msg = print $msg "\nYou are able to transfer them to travel crates. They wait on the ship until you have cleared the island. " $cats " more to go!"}}
+        {{end}}
+    {{$news = $news.Append $msg}}
+    {{end}}
+
+
+    {{$db.Set "interested" $icats}}
+    {{$db.Set "cats" $cats}}
+{{end}}
+
+
+{{/* finish up */}}
+{{if eq $crit 1}}
+    {{$msg := ""}}
+    {{if eq $roll 1}}
+        {{$udb.Set "dmg" (max 50 (add (toInt $udb.dmg) $dmg) | toInt)}}
+        {{$msg = print "Your damage increased by " $dmg "."}}
+    {{else}}
+        {{$udb.Set "dmg" $swing}}
+        {{$msg = print "You took " $swing " damage."}}
+    {{end}}
+    {{$news = $news.Append $msg}}
+{{else if eq $crit 2}}
+    {{$charm := index ($o := cslice "charm" "luck" "agility" "patience" "speed" "experience" "reflexes" "focus" "courage" "determination" "cat senses" "motivation") (randInt (len $o))}}
+    
+    {{$news = $news.Append (print "Your " $charm " has increased by " $swing ".")}}
+    {{if eq $roll 100}}
+        {{$udb.Set "buff" (max 50 (add (toInt $udb.buff) $buff) | toInt)}}
+    {{else}}
+        {{$udb.Set "buff" $swing}}
+    {{end}}
+{{end}}
+
+{{$icats = max $icats 0 | toInt}}
+{{$icats = min $icats $cats | toInt}}
+{{$db.Set "interested" $icats}}
+
+{{$win := 0}}
+{{if le $cats 0}}
+    {{/* win text */}}
+    {{$news = $news.Append (print "# You've caught all the cats! :confetti_ball:\nGathering up the rest of the crates and your coworkers, you get back on the ship and return to the mainland.\n**You are Leaving Purradice.**\nYou caught a total of " (toInt $db.caught) " cats. It took you " (toInt $db.days) " days.\n:saluting_face:") }}
+    {{$win = 1}}
+{{end}}
+
+{{if not $status}}
+    {{if gt $udb.dmg $udb.buff}}
+        {{$status = $badstatus}}
+    {{else if gt $udb.buff $udb.dmg}}
+        {{$status = $goodstatus}}
+    {{end}}
+{{end}}
+
+{{/* perception check */}}
+{{if $e.look}}
+    {{$v := index ($o := cslice "look around" "sneak around for a bit" "figure out what to do" "take stock of the situation" "figure out what to do next" "ponder for a bit" "scan the area" "watch the cats for awhile" "observe the activities of the island" "determine the status of the situation" "discern the situation" "investigate the island" "investigate the area" "go through your equipment" "take inventory" "explore the area" "explore the island" "search the area" "search the island" "stalk some cats") (randInt (len $o))}}
+
+    {{$msg := print "You " $v ". " $status}}
+    {{if eq $roll 1}}
+        {{$v2 := index ($o := cslice "you trip over over a cat while it walks by. Well. I guess you know there's at least one cat around." "you trip over one of your shoelaces and fall flat on your face." "clouds suddenly block the sun and you can't see anything." "a completely unexpected and suspicious thunderstorm pelts the island, killing all visibility. You head back to the ship to wait out the storm." "a thick fog rolls in at precisely that moment." "your glasses fall off your face. A cat picks them off and rushes off with them. Well, you know there's at least one cat around..." "your eyes start watering and you can't see anything. You may have a new cat allergy. Oof." "you get the sense a dice roll was involved here, and you utterly failed it.") (randInt (len $o))}}
+
+        {{$msg = print $status "\nYou try to " $v ". But " $v2 " Maybe you can ask one of your teammates or try again later."}}
+    {{else}}
+        {{$msg = print $msg "\nYour phone says you arrived at the island <t:" (toInt $db.gamestart) ":R>. There must be something wrong with it, because you know it's been " (max (sub (toInt $db.days) 1) 1) " days since then.\n**You've discovered " (add (toInt $db.caught) $cats) " cats so far. " $icats " seem interested in you.**\n\nThe only equipment with you are trapping supplies and food for you and baiting the traps.\nThe ship is docked, but it won't leave until all the cats are on it. \n**The job isn't done until the remaining " $cats " cats are off the island.**"}}
+
+        {{if $db.caught}}
+            {{$msg = print $msg "\n\nThe travel crates of the " $db.caught " cats you've already caught sit on the ship, waiting for the " $cats " other cats to join them. \nThey are taken care of by the ship's crew until that time comes. You trust them."}}
+        {{end}}
+
+    {{end}}
+
+    {{if and (ge $roll 50) ($e.available)}}
+        {{/* some more cats become interested */}}
+        {{$affected := max $e.affected $e.int_affected | toInt}}
+        {{$affected = min $affected $cats | toInt}}
+        {{$icats2 := min (add $icats $affected) $cats | toInt}}
+        
+        {{$n := index ($o := cslice "all your pondering" "all this thinking" "your presence" "your scent" "your demeanor" "your train of thought" "the ship") (randInt (len $o))}}
+
+        {{$msg = print $msg "\n\n**It seems that " $n " " $e.attracts " " (sub $icats2 $icats) " more cats...** " $e.theyre_interested}}
+
+        {{$icats = $icats2}}
+        {{$db.Set "interested" $icats2}}
+    {{end}}
+
+    {{$news = (cslice $msg).AppendSlice $news}} 
+{{end}}
+
+{{if $news}}
+    {{$count := len (joinStr " " $news) }}
+
+    {{if lt $count 2000}}
+        {{sendMessage nil (complexMessage "allowed_mentions" nil "reply" $mid "content" (joinStr "\n" $news))}}
+    {{else}}
+        {{sendMessage nil (complexMessage "allowed_mentions" nil "reply" $mid "embed" (cembed "description" (joinStr "\n" $news)))}}
+    {{end}}
+{{end}}
+
+{{if $win}}
+    {{dbDel $cid "purradice"}}
+    {{return}}
+{{end}}
+
+{{dbSet $cid "purradice" $db}}
+
+{{$udb_expiry := toInt $e.udb_expiry}}
+{{if $crit}}
+    {{$udb_expiry = toInt $e.ten}}
+    {{$udb.Set "msgs" 0}}
+{{end}}
+
+{{if or $udb.buff $udb.dmg}}
+    {{$expire := sub $udb_expiry currentTime.Unix}}
+    {{if gt $expire 1}}
+        {{dbSetExpire $uid "purradice" $udb $expire}}
+    {{else}}
+        {{dbDel $uid "purradice"}}
+    {{end}}
+{{end}}

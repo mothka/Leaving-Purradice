@@ -1,0 +1,60 @@
+{{/* Leaving Purradice - name action
+trigger: none
+
+Resolves naming cats.
+*/}}
+
+{{$e := .ExecData}}
+{{if not $e}}
+{{return}}
+{{end}}
+
+{{$save := $e}}
+{{$news := $e.news}}
+{{$cats := toInt $e.cats}}
+{{$icats := toInt $e.icats}}
+{{$roll := toInt $e.roll}}
+{{$affected := toInt $e.affected}}
+{{$available := toInt $e.available}}
+{{$cat := $e.cat}}
+{{$m := $e.m}}
+
+
+{{$re := print `\bnam(?:e|ed|ing)\s+(?:(?:one of the|one of them|one of|the|an?|this|that|my|our|his|her|their|him|it|them)\s+)*(?:(?:` $cat `)\s+)*(?:(?:is|as|called)\s+)?([a-z0-9_]+(?:\s+[a-z0-9_]+)?)`}}
+{{$match := reFindAllSubmatches $re $m}}
+
+{{/* default if no usable name was found */}}
+{{$name := "The cat"}}
+{{if $match}}
+    {{/* $cat contains its own capture groups, so the name is the LAST group, not group 1 */}}
+    {{$row := index $match 0}}
+    {{$n := index $row (sub (len $row) 1)}}
+    {{$n = reReplace `\s+` $n " "}}
+    {{$n = reReplace `\s+(?:and|but|because|since|so|if|who|which|the|of|a|an|is|was)$` $n ""}}
+    {{$n = reReplace `^\s+|\s+$` $n ""}}
+    {{if and $n (not (reFind (print `^(?:(?:` $cat `|him|her|it|them|the|an?|one|of|my|our|his|their|this|that|is|as|called)(?:\s+|$))+$`) $n))}}
+        {{$name = title $n}}
+    {{end}}
+{{end}}
+
+{{$msg := ""}}
+{{if le $roll 40}}
+    {{$msg = print $name " " (index ($o := cslice "did not like" "hated") (randInt (len $o))) " that.\nThey " (index ($o2 := cslice "bite" "chomp on" "claw at" "scratch" "swipe at" "gnaw on" "hiss at") (randInt (len $o2))) " you and run off."}}
+    {{$icats = max (sub $icats 1) 0 | toInt}}
+
+{{else}}
+    {{$msg = print $name " " (index ($o := cslice "liked that." "loved that." "closes their eyes and purrs." "raises their tail high.") (randInt (len $o)))}}
+
+    {{if and $available (gt $roll 70)}}
+        {{$icats = min (add $icats $affected) $cats | toInt}}
+        {{$msg = print $msg "\n" $affected " other cats " (index ($o2 := cslice "look on in wonder" "seem jealous" "turn toward you" "walk forward" "meow expectantly") (randInt (len $o2))) (index ($o3 := cslice "." ". They want to be named too.") (randInt (len $o3)))}}
+        {{$msg = print $msg "\nThere are now " $icats " that seem interested in you."}}
+    {{end}}
+{{end}}
+
+{{$news = $news.Append $msg}}
+
+{{/* send to finish */}}
+{{$save.Set "icats" $icats}}
+{{$save.Set "news" $news}}
+{{execCC (toInt $e.finishcc) nil 0 $save}}

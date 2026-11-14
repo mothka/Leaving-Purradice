@@ -1,0 +1,204 @@
+{{/* Leaving Purradice - actions
+trigger: none
+
+Only figures out WHAT the player is doing (a, v, food, obj).
+Saves it in the db for the main cc, which sends it to the cc that answers it.
+*/}}
+
+{{$e := .ExecData}}
+{{if not $e}}
+  {{return}}
+{{end}}
+
+{{$m := $e.m}}
+{{$cmd := toInt $e.cmd}}
+
+{{/* figure out what action is taking place */}}
+{{$actions := sdict 
+"1_nope" `(shoot|stabb?|poison|burn|drown|kill|kick|punch|hitt?|sell|abandon|starve?|hunt|cutt?|thrown?|threw|toss)(ing|ed|s|es)?`
+"2_drugs" `drug(ged|ging|s)?|sedate?d?|tranq(ed|s|ing)?|tranquilize?(r?s?|ing)?|anestheti(s|z)e?(ing)?|neuter(ed|s|ing)?|spay(s|ed|ing)?|catch and releas(e|ing)`
+"3_call" `call|whistle?|((shak(e|es|ing)|shook|open(s|ed|ing)?|(leav(e|es|ing)|left|put(s|ting)?|lay(s|ing)?|laid|lie|lies|lying) (out|down)|build(s|ing)?|built|set(s|ting)?)(\s+\w+){0,4}\s+(can|bag|towel|box|cardboard|paper|bed|house|castle|tent))|crouch|lur(e|ing)|summon(ing)?|find|(\b(?:ps+\s*){2,}p?\b)`
+"4_pet" `(pett?|cuddle|cuddling|kiss|boop|scritch|scratch|hugg?|meow|talk|sing|dance?|brush|rubb?|(take|took|taking|taken) a photo|photograph|adopt|keep|charm|tame?|play|toy|ball|stick|string|feather|laser pointer|cheer|bongo|butt patt?)(es|s|ed|ing)?`
+"5_intimidate" `((ran|run(s|ning)?) (at|after)|intimidate?|chase?|yell|scare?|startle?|glare?|hiss|pounce?|jump|taunt)(s|es|ing|ed)?`
+"6_grab" `grabb?|catch|scoop|pick(s|ed|ing)? up|capture?|snatch|net|bagg?|carry|carri|hold`
+"7_free" `release?|disengage|free|liberate?|unleash|(set|let)(s|ting)? loose|unlock|let(s|ting)? go|unload|open(\s+\w+){0,2}\s+(crate|cage|carrier|box|kennel)|(put(s|ting)?|bring(s|ing)?|brought|return(s|ed|ing)?|send(s|ing)?|sent)(\s+\w+){0,2}\s+back|tak(es?|ing)(\s+\w+){0,2}\s+(off|from)(\s+\w+)?\s+ship`
+}}
+
+{{/* word lists */}}
+{{$toywords := cslice "toy" "toys" "ball" "balls" "yarn" "string" "feather" "feathers" "laser"}}
+{{$foodlist := cslice "fish" "food" "foods" "treat" "treats" "tuna" "salmon" "chicken" "chickens" "bird" "birds" "kibble" "turkey" "turkeys" "cheese" "meat" "meats" "beef" "ham" "hams" "mouse" "mice" "rat" "rats" "vole" "voles" "rabbit" "rabbits" "hare" "hares" "bait"}}
+{{$trapnet := cslice "trap" "traps" "net" "nets" "blanket" "blankets" "carrier" "carriers" "towel" "towels"}}
+{{$preps := cslice "at" "on" "onto" "over" "for" "to" "toward" "towards"}}
+{{$dets := cslice "a" "an" "the" "some" "my" "your" "his" "her" "their"}}
+
+{{$feeding := 0}}
+{{$action := ""}}
+{{$v := ""}}
+{{$obj := ""}}
+{{$foodwords := `fish|foods?|treats?|tuna|salmon|chickens?|birds?|kibble|turkeys?|cheese|meats?|beef|hams?|mouse|mice|rats?|voles?|rabbits?|hares?`}}
+{{$foodtrap := reFindAllSubmatches (print `(\b(?:` $foodwords `)\b)|(feed|snack|bait)|(\blay|\bengage)`) $m}}
+
+
+{{$food := ""}}{{$feedword := ""}}{{$settrap := 0}}
+{{range $foodtrap}}
+  {{if and (not $food) (index . 1)}}
+      {{$food = index . 1}}
+  {{end}}
+  {{if and (not $feedword) (index . 2)}}
+      {{$feedword = index . 2}}
+  {{end}}
+  {{if index . 3}}
+     {{$settrap = 1}}
+  {{end}}
+{{end}}
+
+{{$near := print `(?:\W+\w+){0,4}?\W+` $e.cat}}
+{{if $cmd}}
+    {{range $k, $r := $actions}}
+        {{$match := reFindAllSubmatches (print `\b(` $r `)(?:s|es|ed|d|ing)?\b` $near) $m}}
+        {{if $match}}
+            {{$action = $k}}
+            {{$v = index $match 0 1}}
+
+            {{if and (eq $k "1_nope") (or (hasPrefix $v "thr") (in $v "toss"))}}
+                {{$full := index $match 0 0}}
+                {{$fw := split $full " "}}
+
+                {{/* scan the matched text word by word (no regex) */}}
+                {{$hasTN := 0}}
+                {{$hasTrap := 0}}
+                {{$hasForTo := 0}}
+                {{$hasAtOn := 0}}
+                {{$thrownfood := ""}}
+                {{$objwords := cslice}}
+                {{$done := 0}}
+
+                {{range $i, $w := $fw}}
+                    {{if in $trapnet $w}}{{$hasTN = 1}}{{end}}
+                    {{if or (eq $w "trap") (eq $w "traps")}}{{$hasTrap = 1}}{{end}}
+                    {{if and (not $thrownfood) (in $foodlist $w)}}{{$thrownfood = $w}}{{end}}
+                    {{if or (eq $w "for") (eq $w "to")}}{{$hasForTo = 1}}{{end}}
+                    {{if in (cslice "at" "on" "onto" "over") $w}}{{$hasAtOn = 1}}{{end}}
+
+                    {{/* thrown object = words between the verb (and optional determiner) and the first preposition */}}
+                    {{if and (gt $i 0) (not $done)}}
+                        {{if in $preps $w}}
+                            {{$done = 1}}
+                        {{else if and (eq $i 1) (in $dets $w)}}
+                            {{/* skip determiner */}}
+                        {{else if $w}}
+                            {{$objwords = $objwords.Append $w}}
+                        {{end}}
+                    {{end}}
+                {{end}}
+
+                {{if and $done $objwords}}
+                    {{$obj = joinStr " " $objwords}}
+                {{end}}
+
+                {{if $hasTN}}
+                    {{/* thrown trap or net: trap or grab */}}
+                    {{if $hasTrap}}
+                        {{$action = "trap"}}
+                    {{else}}
+                        {{$action = "6_grab"}}
+                    {{end}}
+                    {{break}}
+                {{else if $thrownfood}}
+                    {{/* thrown food: call */}}
+                    {{$action = "3_call"}}
+                    {{if eq $thrownfood "bait"}}{{$thrownfood = "food"}}{{end}}
+                    {{$food = $thrownfood}}
+                    {{break}}
+                {{else if and $hasForTo (not $hasAtOn)}}
+                    {{/* "throw a toy for the cat": let later keys decide */}}
+                    {{$action = ""}}
+                    {{$v = ""}}
+                    {{continue}}
+                {{end}}
+            {{end}}
+            {{break}}
+        {{end}}
+    {{end}}
+
+  {{if $action}}
+      {{$in := $v}}
+      {{if in $in "photo"}}
+          {{$v = "take a photo"}}
+      {{else if or (hasPrefix $in "ran") (hasPrefix $in "run")}}
+          {{$v = "run toward"}}
+      {{else if or (hasPrefix $in "toy") (hasPrefix $in "ball") (hasPrefix $in "stick") (hasPrefix $in "string") (hasPrefix $in "feather") (hasPrefix $in "laser")}}
+          {{$v = "play"}}
+      {{else}}
+          {{range split "pet,cuddle,kiss,boop,scritch,scratch,hug,meow,talk,sing,dance,adopt,keep,charm,tame,play,cheer,bongo,butt pat,yell,glare,hiss,pounce,jump,intimidate,chase,scare,startle,taunt" ","}}
+              {{/* strip a trailing "e" to get the stem without regex */}}
+              {{$stem := .}}
+              {{if hasSuffix . "e"}}
+                  {{$stem = slice . 0 (sub (len .) 1)}}
+              {{end}}
+              {{if hasPrefix $in $stem}}
+                  {{$v = .}}
+                  {{break}}
+              {{end}}
+          {{end}}
+      {{end}}
+  {{end}}
+{{end}}
+
+{{if not $action}}
+  {{if not $food}}
+      {{if $feedword}}
+          {{$feeding = 1}}
+          {{$food = $feedword}}
+      {{end}}
+  {{else if or
+      (in $m "offer")
+      (in $m "tempt")
+      (in $m "treat")
+      (in $m "set out")
+      (in $m "give")
+  }}
+      
+      {{$feeding = 1}}
+  {{end}}
+
+  {{if or (and $food (not $feeding)) (eq $food "bait")}}
+      {{if or
+          (in $m "set")
+          (in $m "put down")
+          (in $m "put out")
+          (in $m "bait")
+          $settrap
+      }}
+          {{$action = "trap"}}
+      {{end}}
+  {{end}}
+
+  {{if not $action}}
+      {{if (in $m "trap")}}
+          {{$action = "trap"}}
+      {{else if $food}}
+          {{$action = "feeding"}}
+      {{else if (and (eq $cmd 1) (reFind (print `\b(` ($actions.Get "7_free") `)\b`) $m))}}
+          {{/* word order can change for releasing cats */}}
+          {{$action = "7_free"}}
+      {{end}}
+  {{end}}
+{{end}}
+
+{{/* throwing/tossing a toy is play, not violence */}}
+{{if eq $action "1_nope"}}
+    {{range split $m " "}}
+        {{if in $toywords .}}
+            {{$action = "4_pet"}}
+            {{$v = "play"}}
+        {{end}}
+    {{end}}
+{{end}}
+
+{{/* save for main (not execCC: depth limit) */}}
+{{$e.Set "a" $action}}
+{{$e.Set "v" $v}}
+{{$e.Set "food" $food}}
+{{$e.Set "obj" $obj}}
+{{dbSetExpire (toInt $e.cid) (print "ptmp" (toInt $e.mid)) $e 60}}

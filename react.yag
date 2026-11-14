@@ -1,0 +1,205 @@
+{{/* Leaving Purradice - reactions
+trigger: none
+
+Answers messages that need no cc of their own:
+- chatter (no command)
+- 1_nope, 2_drugs, 3_call, 5_intimidate, 6_grab
+- commands with no recognized action
+Then sends everything to finish.
+*/}}
+
+{{$e := .ExecData}}
+{{if not $e}}
+    {{return}}
+{{end}}
+
+{{$news := $e.news}}
+{{$db := $e.db}}
+{{$cats := toInt $e.cats}}
+{{$icats := toInt $e.icats}}
+{{$roll := toInt $e.roll}}
+{{$crit := toInt $e.crit}}
+{{$swing := toInt $e.swing}}
+{{$dmg := toInt $e.dmg}}
+{{$cmd := toInt $e.cmd}}
+{{$affected := toInt $e.affected}}
+{{$int_affected := toInt $e.int_affected}}
+{{$available := toInt $e.available}}
+{{$atks := $e.atks}}
+{{$m := $e.m}}
+{{$a := $e.a}}
+{{$v := $e.v}}
+{{$obj := $e.obj}}
+{{$food := $e.food}}
+{{$int := 0}}
+{{$caught := 0}}
+
+{{if not $cmd}}
+    {{/* count text characters */}}
+    {{$chars := 50}}
+    {{$add := 0}}
+    {{$msg := print (index ($o := cslice "All this talking" "The noise" "The chatter" "Your voice" "Your presence" "Your scent" "Your demeanor") (randInt (len $o))) " "}}
+
+    {{if and $available (ge (len $m) $chars) (ge $roll 50)}}
+        {{$icats = add $affected $icats}}
+        {{$msg = print $msg $e.attracts " " $affected " cats. " $e.theyre_interested "."}}
+        {{$add = 1}}
+    {{end}}
+
+    {{/* short message or low roll */}}
+    {{if and (le $roll 30) (lt (len $m) $chars)}}
+        {{$add = 1}}
+        {{if $icats}}
+            {{$icats = sub $icats $int_affected}}
+            {{$icats = max $icats 0 | toInt}}
+
+            {{$msg = print $msg $e.disinterests " " $int_affected " cats. They " $e.leave (index ($o := cslice "." ", disappearing from sight.") (randInt (len $o)))}}
+        {{else}}
+            {{if ne $crit 1}}
+                {{$msg = print $msg "\nOne of them " $atks " you on their way out."}}
+                {{$crit = 1}}
+            {{end}}
+        {{end}}
+
+        {{if and (eq $crit 1) $e.udb.dmg}}
+            {{/* don't kill chatters */}}
+            {{$swing = add $dmg (randInt 1 6)}}
+        {{end}}
+
+        {{if ne $crit $roll}}
+            {{$crit = 0}}
+        {{end}}
+    {{end}}
+
+    {{if $add}}
+        {{$news = $news.Append $msg}}
+    {{end}}
+{{else if not $a}}
+    {{/* a command, but no action found */}}
+    {{$msg := "The cats stare blankly at you"}}
+    {{if ne $cmd 2}}
+        {{$msg = index ($o := cslice "The cat stares blankly at you" "A cat tilts its head at you" "A cat glances your way, then goes back to grooming" "A cat brushes up against your leg as it walks by") (randInt (len $o))}}
+    {{end}}
+    {{$news = $news.Append (print $msg ".\n-# || I didn't understand what you were trying to do. ||")}}
+
+    {{if eq $crit 1}}
+        {{$crit = 0}}
+        {{$roll = 2}}
+    {{end}}
+{{else if eq $a "1_nope"}}
+  {{$msg := print "You think about doing that. Then you " (index ($o := cslice "remember your manners" "realize what server you're in" "realize you're a pacifist" "realize you're better than that" "think better of it" "decide *not* to do that" "decide to be a nicer person" "decide *not* to be an asshole" "decide *not* to be mean" "decide *not* to be a monster" "realize what you were about to do is bad and you should feel bad" "feel bad about it and don't" "decide you'd better not" "look down and whisper to yourself, \"no\"" "take a moment to reconsider" "understand that would be mean" "understand that animal cruelty is wrong" "realize it's wrong to do" "think maybe this server isn't the best fit for that type of activity") (randInt (len $o))) "."}}
+  
+  {{if or (le $roll 50) ($crit)}}
+      {{$crit = 1}}
+      {{$msg = print $msg " You walk away from the cats and look at the ocean, thinking about your decisions and purpose here."}}
+      {{$swing = add $dmg 20 $swing}}
+  {{end}}
+
+  {{$news = $news.Append $msg}}
+{{else if eq $a "2_drugs"}}
+  {{$news = $news.Append "Unfortunately, you don't have the tools for that with you."}}
+{{else if eq $a "3_call"}}
+  {{$msg := "Your calls "}}
+  {{if $food}}
+    {{$msg = print $msg "of " $food " "}}
+  {{end}}
+
+  {{if lt $roll 30}}
+      {{$msg = print $msg (index ($o := cslice "go unanswered" "go unheard" "are unheard" "are not interesting enough" "bore them" "aren't convincing" "fail to attract the cats") (randInt (len $o))) (index ($opts2 := cslice "." ". Try harder?" ". Maybe next time..." ". You wonder if changing your pitch would help." ". Maybe if you held it a little higher...") (randInt (len $opts2)))}}
+      {{$msg = print $msg " " $affected " cats stare blankly."}}
+  {{else}}
+      {{$int = 1}}
+      {{$msg = print $msg $e.attracts " some of the cats. " $e.theyre_interested "."}}
+  {{end}}
+
+  {{if eq $crit 1}}
+      {{$msg = print $msg "\nOne of the cats hates this so much, they " (index ($o := cslice "bite" "scratch" "hiss at" "glare at" "attack") (randInt (len $o))) " you before they " $e.leave "."}}
+  {{end}}
+  {{$news = $news.Append $msg}}
+{{else if eq $a "5_intimidate"}}
+  {{if eq $v "yell" "glare" "pounce" "jump" "hiss"}}
+      {{$v = print $v " at"}}
+  {{end}}
+
+  {{$msg := print "You " $v " one of the cats."}}
+  {{$act := index ($o := cslice "poofs out to double its size" "makes the perfect duplicate of the halloween cat pose" "screams and runs off" "yowls and bolts" "runs away hissing" "skitters away quickly" "runs off into the sunset") (randInt (len $o))}}
+
+  {{if ge $roll 50}}
+      {{if $icats}}
+          {{$icats = max (sub $icats $int_affected) 0 | toInt}}
+          
+          {{$msg = print $msg "\nIt " $act "."}}
+          {{if ge $int_affected 2}}
+              {{$msg = print $msg "\n" (sub $int_affected 1) " other cats also run off."}}
+          {{end}}
+      {{end}}
+
+      {{if ge $roll 80}}
+          {{$cats = add $cats $affected}}
+          {{$icats = add $icats 1}}
+          {{$db.Set "cats" $cats}}
+
+          {{$msg = print $msg "\n...\nThe cats eventually return, but they brought " $affected " new cats with them. Now you've got " (add $affected 1) " cats with their eye on you. They prowl the perimeter."}}
+      {{end}}
+  {{else}}
+      {{$msg = print $msg "It " $act "."}}
+
+      {{if eq $crit 1}}
+          {{$msg = print $msg "\nOne of them " $atks " you on its way out."}}
+      {{end}}
+  {{end}}
+
+  {{$news = $news.Append $msg}}
+{{else if eq $a "6_grab"}}
+    {{$msg := ""}}
+
+  {{if or (hasPrefix $v "thr") (in $v "toss")}}
+      {{$v := "throw"}}
+      {{$obj = or $obj "towel"}}
+      {{$msg = print "You try to " $v " a " $obj " on the cat!"}}
+  {{else}}
+    {{$v := (index ($o := cslice "grab" "catch" "scoop up" "pick up" "capture" "snatch" "bag" "hold") (randInt (len $o)))}}
+
+    {{$msg = print "You try to " $v " the cat!"}}
+  {{end}}
+
+  {{$opts := cslice "Managing to dodge, it" "Rolling around crazily, it manages to escape. The cat"}}
+    {{if $obj}}
+        {{$opts = $opts.Append (print "With the " $obj " still on it, the cat") (print "Rolling around crazily, it manages to escape the " $obj ". The cat")}}
+    {{end}}
+    {{$dodge := index $opts (randInt (len $opts))}}
+
+  {{if lt $roll 90}}
+          {{$crit = 1}}
+          {{$msg = print $msg "\n" $dodge " " (index ($o2 := cslice "screams and runs off" "yowls and bolts" "runs away hissing" "skitters away quickly" "runs off into the sunset") (randInt (len $o2)))}}
+
+          {{if eq $roll 1}}
+              {{$msg = print $msg ", but not before it " $atks " you.."}}
+          {{end}}
+
+  {{else if ge $roll 90}}
+      {{$caught = 1}}
+      {{if lt $icats 1}}
+          {{$icats = 1}}
+      {{end}}
+  {{end}}
+
+  {{$news = $news.Append (print $msg ".")}}  
+{{end}}
+
+{{/* send to finish */}}
+{{$package := sdict
+    "int" $int
+    "caught" $caught
+    "icats" $icats
+    "cats" $cats
+    "crit" $crit
+    "roll" $roll
+    "swing" $swing
+    "news" $news
+}}
+{{range $k, $val := $package}}
+    {{$e.Set $k $val}}
+{{end}}
+
+{{execCC (toInt $e.finishcc) nil 0 $e}}

@@ -1,0 +1,45 @@
+{{/* Leaving purradice - new game
+trigger: none
+
+But type "-startgame" to use it.
+You can change the number of starting cats by adding a number. 
+e.g. "-startgame 10" will start with 10 cats.
+Default cats is 5.
+*/}}
+
+{{$e := .ExecData}}
+{{if not $e}}
+    {{return}}
+{{end}}
+
+{{$num := 5}}
+{{if ($n := reFind `\d+` $e)}}
+    {{$num = max (toInt $n) 1 | toInt}}
+{{end}}
+
+{{$data := sdict 
+    "cats" $num
+    "interested" 0
+    "gamestart" currentTime.Unix
+    "caught" 0
+    "msgs" 0
+    "days" 0
+}}
+{{dbSet .Channel.ID "purradice" $data}}
+
+{{$startmsg := componentBuilder "allowed_mentions" nil 
+"text" "# Leaving Purradice :cat: :island:"
+"separator" false 
+"text" "-# A simple text-based game for discord."
+"separator" false
+"text" "You are on an island with a bunch of cats. It is your job to get the cats off the island.\nIt's the current time period and there is no magic here."
+"separator" true 
+"text" (print "You think **there are " $num " cats** you need to take care of, but you're not quite sure.\nWhat do you do?")
+"separator" true 
+"text" (print "-# **Game hints:**\n"
+"-# - Keep things simple - do only one action per message (stay away from \"and\")\n"
+"-# - Try to start your messages with a pronoun\n"
+"-# - Make sure to mention a cat!\n"
+)}}
+
+{{sendMessage nil $startmsg}}

@@ -1,0 +1,65 @@
+{{/* Leaving Purradice - release action
+trigger: none
+
+Resolves everything in the 7_free logic branch, which covers releasing cats.
+*/}}
+
+{{$e := .ExecData}}
+{{if not $e}}
+    {{return}}
+{{end}}
+{{$save := $e}}
+{{$news := $e.news}}
+{{$db := $e.db}}
+{{$cats := toInt $e.cats}}
+{{$roll := toInt $e.roll}}
+{{$affected := toInt $e.affected}}
+{{$available := toInt $e.available}}
+
+{{$v := index ($o := cslice "You're PETA. You're doing it. Cats deserve to be free!" "It's a cat island. Why are we trying to catch the cats? They should be free!" "You go back to the ship." "Endemic species? Pfft, let the cats roam!" "Listen. They're warrior cats. It's time to start Island Clan." "You never liked this job anyway." "You never signed up for this!") (randInt (len $o))}}
+
+{{$free := 0}}
+{{$msg := print $v "\nBut the thing is... You haven't actually caught any cats yet. You can't release cats that are already free."}}
+{{if $db.caught}}
+    {{$free = min (toInt $db.caught) $affected | toInt}}
+
+    {{$msg = print $v " You try to release some cats."}}
+{{end}}
+
+{{if $free}}
+    {{if ge $roll 70}}
+        {{$db.Set "caught" (sub (toInt $db.caught) $free)}}
+        {{$cats = add $cats $free}}
+        {{$db.Set "cats" $cats}}
+        {{$available = add $free $available}}
+
+        {{$v := print (index ($o := cslice "mew gleefully as they leave" "trot away" "give a purr of approval before disappearing" "slink off into the fog" "mew thankfully" "bound off into the wilderness" "give a look of gratitude") (randInt (len $o))) "." }}
+
+        {{$msg = print $msg "\nNo one suspects a thing as you start going through the crates. You manage to get " $free " cats back on the island before anyone notices. They " $v}}
+    {{else if lt $roll 70}}
+        {{$msg = print $msg "\nYou manage to move " $free " crates."}}
+        {{$free = 0}}
+    {{end}}
+{{end}}
+
+{{if not $free}}
+    {{$v := index ($o := cslice "you think better of it. That's not why we're here. The ship won't leave until you get all the cats *off* the island." "someone spots you. The jig is up. Maybe next time." "you stumble. You don't think you're coordinated enough to get the cats out of the traps without further stressing them. You decide to leave the dreams to fantasy. You'd rather get off the island sooner." "you realize the more cats you free, the longer it will take to leave the island. You put the crates back." "the realities of capitalism crush you, and you realize you need this job. Better keep trapping cats." "you realize it's actually better for everyone if the cats leave the island afterall." "the clouds part and the sky brightens. Your daydream is over." "your cowardice overrides your dreams. You stop and continue as normal." "you realign yourself. The object is to get the cats off the island. You can't leave until they do.") (randInt (len $o))}}
+
+    {{$msg = print $msg "\nBut then " $v}}
+{{end}}
+
+{{$news = $news.Append $msg}}
+
+{{/* send to finish */}}
+{{$package := sdict 
+"affected" $affected 
+"news" $news
+"db" $db 
+"cats" $cats 
+"available" $available
+}}
+{{range $k, $val := $package}}
+    {{$save.Set $k $val}}
+{{end}}
+
+{{execCC (toInt $e.finishcc) nil 0 $save}}

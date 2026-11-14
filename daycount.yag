@@ -1,0 +1,42 @@
+{{/* Leaving Purradice - Day count
+trigger: none
+
+sends a message about a day ending
+*/}}
+
+{{$e := .ExecData}}
+{{if not $e}}
+    {{return}}
+{{end}}
+
+{{$total := toInt $e.total}}
+{{$cats := toInt $e.cats}}
+{{$newcats := toInt $e.newcats}}
+{{$icats := toInt $e.interested}}
+
+{{$msg := print "# Day " $total " ends..."}}
+
+{{if ge $newcats 1}}
+    {{$msg = print $msg "\nOn your way back to the ship for the night, you notice " $newcats " new " (index ($o := cslice "cats" "kittens") (randInt (len $o))) " you've never seen before playing in the distance."}}
+{{end}}
+
+  
+{{if ($caught2 := toInt $e.caught)}}
+    {{$all := add $caught2 $cats}}
+
+    {{$msg = print $msg "\nThinking about the work you've done so far, you realize catching " $caught2 " cats is "}}
+
+    {{$v := "something to be proud of."}}
+
+    {{if lt $caught2 (max 0 (div $all 2) | toInt)}}
+        {{$v = "not the productivity rate you would've liked."}}
+        
+        {{if lt $caught2 (max 0 (div $all 4) | toInt)}}
+            {{$v = "abysmal. You should really be farther along by now..."}}
+        {{end}}
+    {{end}}
+
+    {{$msg = print $msg $v}}
+{{end}}
+
+{{sendMessage nil (print $msg "\nThe next morning, you awaken to seize the day.\nSurveying the island from the ship's brow, **you see a total of " $cats " cats roaming around.\n" $icats " of them seem interested in your arrival.**") }}

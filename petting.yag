@@ -1,0 +1,122 @@
+{{/* Leaving Purradice - pet action
+trigger: none
+
+Resolves everything in the 4_pet logic branch:
+pet, cuddle, photograph, adopt/keep, tame, play, etc.
+*/}}
+
+{{$e := .ExecData}}
+{{if not $e}}
+    {{return}}
+{{end}}
+
+{{$save := $e}}
+{{$news := $e.news}}
+{{$icats := toInt $e.icats}}
+{{$roll := toInt $e.roll}}
+{{$crit := toInt $e.crit}}
+{{$swing := toInt $e.swing}}
+{{$v := $e.v}}
+{{$affected := toInt $e.affected}}
+{{$int := 0}}
+
+{{$act := "seem interested"}}
+{{$talk := ""}}
+{{$cheer := ""}}
+
+{{if in $v "photo"}}
+    {{$v = "take a photo of"}}
+    {{$act = print "strike a " (index ($o := cslice "fun" "cool" "unique" "derpy" "fashionable" "regal") (randInt (len $o))) " pose while " (index ($o2 := cslice "their tail is held high" "their tail is curled over their front paws" "stretching with their front paws forward" "stretching with their hind legs laying flat on the ground" "yawning, showing their big teeth" "yawning - whew! This cat needs a dentist!" "opening their mouth wide" "showing their teeth" "giving a playful meow" "pretending to hiss" "arching its back" "holding their head high" "half-closing their eyes") (randInt (len $o2))) (index ($o3 := cslice "." ". Paint me like one of your french cats!") (randInt (len $o3)))}}
+
+{{else if (in $v "cheer")}}
+    {{$v = "bring up the spirits of"}}
+    {{$cheer = $v}}
+{{else if (in $v "meow")}}
+    {{$v = "meow at"}}
+    {{$talk = $v}}
+{{else if (in $v "talk")}}
+    {{$v = "talk to"}}
+    {{$talk = $v}}
+{{else if (in $v "sing")}}
+    {{$v = "sing to"}}
+    {{$talk = $v}}
+{{else if (in $v "dance")}}
+    {{$v = "dance for"}}
+    {{$cheer = $v}}
+{{else if (in $v "play")}}
+    {{$v = "play with"}}
+    {{$act = print (index ($o := cslice "give some playful swats" "seem interested" "watch intently" "follow your lead" "bob their head" "twitch their tail" "get into a pouncing position" "open their mouth" "grab the toy" "play back" "give some playful bites" "give you some love bites" "accidentally scratch you in their playful fervor" "start doing the swiggity swooty with dat booty" "get dilated pupils" "give a playful hiss" "pounce the toy" "jump for the toy") (randInt (len $o))) "."}}  
+{{end}}
+
+{{if eq $v "charm" "boop" "tame"}}
+    {{$cheer = $v}}
+{{end}}
+
+{{if $cheer}}
+    {{$act = print (index ($o := cslice "seem happier" "half-blink" "close their eyes" "wrap their tail around themselves" "sit and watch" "appear to be smiling" "might have laughed at you" "side-eye you" "look away" "pretend to ignore you" "purr") (randInt (len $o))) "."}}
+{{else if $talk}}
+    {{$act = print (index ($o := cslice "appear to listen" "listen intently" "look away" "eye you warily" "side-eye you" "pretend to ignore you" "tilt their head" "mrow" "meow" "purr" "growl" "answer back" "say hello" "say hello. Yes, in english. Maybe you should get yourself checked out later" "give a soft little mew" "might not understand you") (randInt (len $o))) "."}}
+{{end}}
+
+{{$msg := print "You " $v " a cat."}}
+
+{{if (eq $v "adopt" "keep")}}
+    {{$msg = print "You want to adopt the cat? No, you want to adopt *all* the cats. Unfortunately that's not why we're here today.\nWe have to clear the island of the cats.\nMaybe we can think about who we're going to keep once we get off the island?\nYou end up just " (index ($o := cslice "petting" "cuddling" "scratching" "hugging") (randInt (len $o))) " one of the cats before trying to focus on the objective." }}
+    {{$v = "pet"}}
+{{end}}
+
+{{if eq $v "bongo" "butt pat"}}
+    {{$v = "pet"}}
+{{end}}
+
+{{if (eq $v "pet" "cuddle" "kiss" "boop" "scritch" "scratch" "hug")}}
+    
+    {{if in $v "boop"}}
+        {{$msg = "You booped the cat's nose."}}
+    {{else if eq $v "scritch" "scratch"}}
+        {{$msg = print "You give a cat a little " $v " " (index ($o := cslice "behind the ears" "under the chin" "on their forehead" "on their back" "near their tail" "on their chest") (randInt (len $o))) "."}}
+    {{end}}
+
+    {{$act = print (index ($o := cslice "seem happier" "seem happy" "purr" "purr like a little motorboat" "close their eyes" "lean into you" "pretend to ignore you" "drool a little bit" "boop *your* nose" "rub against your legs" "rub against your hand" "push their head into yours" "perk up" "raise their back" ) (randInt (len $o))) "."}}
+
+{{end}}
+
+{{if (le $roll 29)}}
+    {{$msg2 := print (index ($o := cslice (print "It " $e.disinterests " them.") "They seem unaffected." "They are not paying attention.") (randInt (len $o))) " " $affected " cats look on with curiosity."}}
+
+    {{if lt $roll 10}}
+        {{$crit = 1}}
+        {{$atks := index ($o := cslice $e.atks "lunges at" "kicks away from" "gets startled and runs off, digging its claws in you before it launches away from" "gets startled and rockets away from" "has randomly decided it hates") (randInt (len $o))}}
+        {{$msg2 = print "It " $atks " you."}}
+        {{$icats = sub $icats 1}}
+        {{$icats = max $icats 0 | toInt}}
+    {{end}}
+
+    {{$msg = print $msg "\n" $msg2}}
+{{else if ge $roll 30}}
+    {{$int = 1}}
+    {{$affected = 1}}
+    {{$swing = 5}}
+    {{$save.Set "swing" 5}}
+    {{$msg = print $msg "\nThey " $act }}
+
+    {{if ge $roll 80}}
+        {{$crit = 2}}
+    {{end}}
+{{end}}
+
+{{$news = $news.Append $msg}}
+
+{{/* send to finish */}}
+{{$package := sdict 
+"int" $int 
+"icats" $icats 
+"affected" $affected 
+"crit" $crit 
+"news" $news
+}}
+{{range $k, $val := $package}}
+    {{$save.Set $k $val}}
+{{end}}
+
+{{execCC (toInt $e.finishcc) nil 0 $save}}
