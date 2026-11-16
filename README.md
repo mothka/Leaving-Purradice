@@ -189,4 +189,4 @@ I am unlikely to fix issues for this game.
 
 - To get around `execCC` stack depth limit, I save information to a database and retrieve it from the other commands. This causes 1-6 seconds of lag. In the rare case the data isn't found within 6 seconds, the trigger message simply isn't recognized.
 - There's no way to end the game early without catching the cats or starting a new game. This is ultimately harmless; only one database doesn't expire.
-- All die roll success/fails were pretty much pulled out of my butt. The game has been played a few times, but it is not fully play-tested. Some odds may feel very out of balance.
+- All die roll success/fails were pretty much pulled out of my butt. The game has been played a few times, but it is not fully play-tested. Some odds may feel very out of balance...
